@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitlab.com/hcmi/graph-analyzer/adjmat"
@@ -14,7 +15,7 @@ import (
 
 type void struct{}
 
-const modeMessage := "Modes are comp(onent), dia(meter), dia(meter) fr(om) a list of nodes, deg(ree) distribution."
+const modeMessage = "Modes are comp(onent), dia(meter), dia(meter) fr(om) a list of nodes, dist(ance) distribution."
 
 // ex ./graph-analyzer diafr data/monday.txt data/monday_giant_component.txt
 func main() {
@@ -28,7 +29,6 @@ func main() {
 	timeStart := time.Now()
 	fmt.Printf("Started %s at %v.\n", taskSelection, timeStart)
 
-	// TODO update this to blas32
 	// use the c based library
 	blas32.Use(blas_netlib.Implementation{})
 
@@ -85,8 +85,19 @@ func dia(adjacencyMatrix [][]uint16) {
 	fmt.Printf("The diameter %d.\n", diameter)
 }
 
-func deg(adjacencyMatrix [][]uint16) {
-	//
+func dist(adjacencyMatrix [][]uint16) {
+	distanceDistribution := calculateDistDistribution(toAdjacencyMatrix(adjacencyMatrix))
+	fmt.Println("distance,frequency")
+	// display freqency distribution
+	for distance, frequency := range distanceDistribution {
+		fmt.Printf("%d,%d\n", distance, frequency)
+	}
+	savePlot(getFileName(), distanceDistribution)
+}
+
+func getFileName() string {
+	parts := strings.Split(os.Args[2], "/")
+	return parts[len(parts)-1]
 }
 
 //newTask returns a task and the matrix to run the task on
@@ -108,8 +119,8 @@ func newTask() (task, [][]uint16) {
 		allowedNodes := readAllowedNodesFile(os.Args[3])
 		graph = createGraphFromComponent(allowedNodes, graph)
 		fn = dia
-	} else if taskType == "deg" {
-		fn = deg
+	} else if taskType == "dist" {
+		fn = dist
 	} else {
 		fn = invalidSelection
 	}

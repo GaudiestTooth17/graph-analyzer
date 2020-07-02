@@ -12,4 +12,5 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	gonum.org/v1/gonum v0.7.0
 	gonum.org/v1/netlib v0.0.0-20200603212716-16abd5ac5bc7
+	gonum.org/v1/plot v0.7.0
 )

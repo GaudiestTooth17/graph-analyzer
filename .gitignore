@@ -1,1 +1,5 @@
 *.txt
+*.png
+.vscode/*
+graph-analyzer
+
