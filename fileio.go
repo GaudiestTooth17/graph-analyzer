@@ -20,7 +20,12 @@ func readAdjacencyMatrix(fileName string) [][]uint16 {
 
 	//set up adjMatrix
 	line, err := fileReader.ReadString('\n')
-	row := lineToSlice(line)
+	row, err := lineToSlice(line)
+	if err != nil {
+		fmt.Println(line)
+		fmt.Println("Cannot be read as a row of the matrix.")
+		panic("")
+	}
 	adjMatrix := make([][]uint16, len(row))
 	for i := 0; i < len(row); i++ {
 		adjMatrix[i] = make([]uint16, len(row))
@@ -30,13 +35,20 @@ func readAdjacencyMatrix(fileName string) [][]uint16 {
 	//populate adjMatrix
 	for i := 1; i < len(row); i++ {
 		line, err = fileReader.ReadString('\n')
-		adjMatrix[i] = lineToSlice(line)
+		if err != nil {
+			panic("Could not read line " + strconv.Itoa(i))
+		}
+		adjMatrix[i], err = lineToSlice(line)
+		if err != nil {
+			fmt.Printf("\nInvalid format on line %d (printed above).\n", i)
+			panic("")
+		}
 	}
 
 	return adjMatrix
 }
 
-func lineToSlice(line string) []uint16 {
+func lineToSlice(line string) ([]uint16, error) {
 	slice := make([]uint16, 0)
 	numbers := strings.Fields(line)
 
@@ -44,12 +56,12 @@ func lineToSlice(line string) []uint16 {
 		num, err := strconv.Atoi(numStr)
 		if err != nil {
 			fmt.Println("An error occurred while reading to the file.")
-			panic(err)
+			return nil, err
 		}
 		slice = append(slice, uint16(num))
 	}
 
-	return slice
+	return slice, nil
 }
 
 func writeMatrix(fileName string, matrix *adjmat.AdjacencyMatrix) {
@@ -60,15 +72,10 @@ func writeMatrix(fileName string, matrix *adjmat.AdjacencyMatrix) {
 	}
 	defer outFile.Close()
 
-	// var builder strings.Builder
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			// fmt.Fprintf(&builder, "%d ", strconv.Itoa(int((*matrix).At(i, j))))
 			fmt.Fprintf(outFile, "%d ", int((*matrix).At(i, j)))
 		}
 		fmt.Fprintln(outFile, "")
-		// builder.WriteRune('\n')
-		// outFile.WriteString(builder.String())
-		// builder.Reset()
 	}
 }

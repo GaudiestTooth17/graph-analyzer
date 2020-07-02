@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"gitlab.com/hcmi/graph-analyzer/adjmat"
-	"gonum.org/v1/gonum/blas/blas32"
-	blas_netlib "gonum.org/v1/netlib/blas/netlib"
+	// blas_netlib "gonum.org/v1/netlib/blas/netlib"
 )
 
 type void struct{}
@@ -30,7 +29,7 @@ func main() {
 	fmt.Printf("Started %s at %v.\n", taskSelection, timeStart)
 
 	// use the c based library
-	blas32.Use(blas_netlib.Implementation{})
+	// blas32.Use(blas_netlib.Implementation{})
 
 	// do what the user said to
 	t, matrix := newTask()
