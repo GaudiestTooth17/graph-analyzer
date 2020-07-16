@@ -36,6 +36,7 @@ func calculateDistDistribution(adjacencyMatrix *adjmat.AdjacencyMatrix) map[uint
 	return distDistribution
 }
 
+// makeDistMatrix returns a matrix where the (i, j)th entry is the distance from node i to node j
 func makeDistMatrix(adjacencyMatrix *adjmat.AdjacencyMatrix) [][]uint16 {
 	//initialize minDistMatrix
 	rows, _ := adjacencyMatrix.Dims()
@@ -58,8 +59,31 @@ func makeDistMatrix(adjacencyMatrix *adjmat.AdjacencyMatrix) [][]uint16 {
 		iterations++
 		fmt.Printf("Completed loop %d (%v).\n", iterations, time.Now().Sub(timeStart))
 	}
+	// nodes are 0 distance away from themselves
+	for i := 0; i < rows; i++ {
+		minDistMatrix[i][i] = 0
+	}
 
 	return minDistMatrix
+}
+
+// findMedianDistances accepts a distance matrix and returns a slice
+// where the ith entry is the median of the ith row
+// ie the median distance the node is from all nodes it is connected to.
+func findMedianDistances(distanceMatrix [][]uint16) []uint16 {
+	medianDistances := make([]uint16, len(distanceMatrix))
+	for node := 0; node < len(distanceMatrix); node++ {
+		connectedNodes := make([]uint16, 0, len(distanceMatrix))
+		// add elements to connectedNodes
+		for connectedNode := 0; connectedNode < len(distanceMatrix); connectedNode++ {
+			if distanceMatrix[node][connectedNode] > 0 {
+				connectedNodes = append(connectedNodes, distanceMatrix[node][connectedNode])
+			}
+		}
+		sort.Slice(connectedNodes, func(i, j int) bool { return connectedNodes[i] < connectedNodes[j] })
+		medianDistances[node] = connectedNodes[len(connectedNodes)/2]
+	}
+	return medianDistances
 }
 
 // updateMindist Edits minDistMatrix in place and places the minimum of the (i, j)th element of both matrices in (i, j)
@@ -78,14 +102,13 @@ func updateMinDist(minDistMatrix *[][]uint16, resultMatrix *adjmat.AdjacencyMatr
 	return insertions
 }
 
-func savePlot(fileName string, distanceDistribution map[uint16]uint16) {
-
+func saveDistanceDistributionPlot(fileName string, distanceDistribution map[uint16]uint16) {
 	p, err := plot.New()
 	if err != nil {
 		panic(err)
 	}
 
-	p.Title.Text = fileName
+	p.Title.Text = fileName + " Distance Distribution"
 	p.X.Label.Text = "Distance"
 	p.Y.Label.Text = "Frequency"
 	points := makePoints(distanceDistribution)
@@ -98,15 +121,33 @@ func savePlot(fileName string, distanceDistribution map[uint16]uint16) {
 	}
 }
 
+func saveMedianDistancePlot(fileName string, medianDistances []uint16) {
+	p, err := plot.New()
+	if err != nil {
+		panic(err)
+	}
+
+	p.Title.Text = fileName + " Median Distances"
+	p.X.Label.Text = "Node (but not ordered by ID)"
+	p.Y.Label.Text = "Median Distance to connected nodes"
+	points := make(plotter.XYs, len(medianDistances))
+	for i := 0; i < len(medianDistances); i++ {
+		points[i].X = float64(i)
+		points[i].Y = float64(medianDistances[i])
+	}
+
+	err = plotutil.AddLinePoints(p, "Median Distances", points)
+	if err != nil {
+		panic(err)
+	}
+	if err = p.Save(8*vg.Inch, 8*vg.Inch, "median_distances_"+fileName+".png"); err != nil {
+		panic(err)
+	}
+}
+
 func makePoints(distanceDistribution map[uint16]uint16) plotter.XYs {
 	sortedDistances := makeSortedListOfDistances(distanceDistribution)
 	points := make(plotter.XYs, len(distanceDistribution))
-	// point := 0
-	// for distance, frequency := range distanceDistribution {
-	// 	points[point].X = float64(distance)
-	// 	points[point].Y = float64(frequency)
-	// 	point++
-	// }
 	for i := 0; i < len(sortedDistances); i++ {
 		points[i].X = float64(sortedDistances[i])
 		points[i].Y = float64(distanceDistribution[sortedDistances[i]])

@@ -4,17 +4,20 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"gitlab.com/hcmi/graph-analyzer/adjmat"
-	// blas_netlib "gonum.org/v1/netlib/blas/netlib"
+	"gonum.org/v1/gonum/blas/blas32"
+	blas_netlib "gonum.org/v1/netlib/blas/netlib"
 )
 
 type void struct{}
 
-const modeMessage = "Modes are comp(onent), dia(meter), dia(meter) fr(om) a list of nodes, dist(ance) distribution."
+const modeMessage = `Modes are (comp)onent, (dia)meter, (dia)meter (fr)om a list of nodes, (dist)ance distribution,
+(med)ian distance from all connected nodes.`
 
 // ex ./graph-analyzer diafr data/monday.txt data/monday_giant_component.txt
 func main() {
@@ -29,7 +32,7 @@ func main() {
 	fmt.Printf("Started %s at %v.\n", taskSelection, timeStart)
 
 	// use the c based library
-	// blas32.Use(blas_netlib.Implementation{})
+	blas32.Use(blas_netlib.Implementation{})
 
 	// do what the user said to
 	t, matrix := newTask()
@@ -76,7 +79,7 @@ func comp(adjacencyMatrix [][]uint16) {
 		largestSubGraph = adjacencyMatrix
 	}
 
-	writeMatrix("lc.txt", toAdjacencyMatrix(largestSubGraph))
+	writeAdjacencyList("lc.txt", toAdjacencyMatrix(largestSubGraph))
 }
 
 func dia(adjacencyMatrix [][]uint16) {
@@ -91,7 +94,18 @@ func dist(adjacencyMatrix [][]uint16) {
 	for distance, frequency := range distanceDistribution {
 		fmt.Printf("%d,%d\n", distance, frequency)
 	}
-	savePlot(getFileName(), distanceDistribution)
+	saveDistanceDistributionPlot(getFileName(), distanceDistribution)
+}
+
+func medDist(adjacencyMatrix [][]uint16) {
+	distanceMatrix := makeDistMatrix(toAdjacencyMatrix(adjacencyMatrix))
+	medianDistances := findMedianDistances(distanceMatrix)
+
+	readFile := getFileName()
+	writeMedianDistanceCSV(readFile[:len(readFile)-4]+".csv", medianDistances)
+
+	sort.Slice(medianDistances, func(i, j int) bool { return medianDistances[i] < medianDistances[j] })
+	saveMedianDistancePlot(getFileName(), medianDistances)
 }
 
 func getFileName() string {
@@ -101,25 +115,27 @@ func getFileName() string {
 
 //newTask returns a task and the matrix to run the task on
 func newTask() (task, [][]uint16) {
-	taskType := os.Args[1]
+	taskName := os.Args[1]
 	fileName := os.Args[2]
 
 	// read graph from HDD
 	timeGraph := time.Now()
-	graph := readAdjacencyMatrix(fileName)
+	graph := readAdjacencyList(fileName)
 	fmt.Printf("Read %dx%d adjacency matrix (%v).\n", len(graph), len(graph[0]), time.Now().Sub(timeGraph))
 
 	var fn taskFunction
-	if taskType == "comp" {
+	if taskName == "comp" {
 		fn = comp
-	} else if taskType == "dia" {
+	} else if taskName == "dia" {
 		fn = dia
-	} else if taskType == "diafr" {
+	} else if taskName == "diafr" {
 		allowedNodes := readAllowedNodesFile(os.Args[3])
 		graph = createGraphFromComponent(allowedNodes, graph)
 		fn = dia
-	} else if taskType == "dist" {
+	} else if taskName == "dist" {
 		fn = dist
+	} else if taskName == "med" {
+		fn = medDist
 	} else {
 		fn = invalidSelection
 	}
