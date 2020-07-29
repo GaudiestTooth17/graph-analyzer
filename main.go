@@ -79,7 +79,7 @@ func comp(adjacencyMatrix [][]uint16) {
 		largestSubGraph = adjacencyMatrix
 	}
 
-	writeAdjacencyList("lc.txt", toAdjacencyMatrix(largestSubGraph))
+	writeAdjacencyList("lc_"+getFileName(), toAdjacencyMatrix(largestSubGraph))
 }
 
 func dia(adjacencyMatrix [][]uint16) {
